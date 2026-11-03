@@ -22,3 +22,15 @@ def manejar_post_pedido(datos: dict, caso_uso) -> tuple[int, dict]:
         "estado": pedido.estado,
         "total": pedido.total_pagado,
     }
+
+def procesar_lote(registros: list[dict], caso_uso) -> dict:
+    resumen = {"ok": 0, "errores": []}
+    for datos in registros:
+        try:
+            caso_uso.procesar_pedido(**mapear_pedido(datos))
+            resumen["ok"] += 1
+        except (KeyError, ValueError, RuntimeError) as error:
+            resumen["errores"].append(
+                {"pedido_id": datos.get("pedido_id"), "error": str(error)}
+            )
+    return resumen

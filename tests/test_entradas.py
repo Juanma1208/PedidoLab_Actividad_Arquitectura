@@ -1,4 +1,4 @@
-from pedidolabs.entradas import manejar_post_pedido
+from pedidolabs.entradas import manejar_post_pedido, procesar_lote
 
 DATOS = {
     "pedido_id": "P-100", "documento": "10", "nombre": "Ana",
@@ -30,6 +30,12 @@ class CasoUsoFalso:
             raise self.error
         return PedidoFalso(kwargs["pedido_id"], self.total)
 
+class CasoUsoSelectivo(CasoUsoFalso):
+    def procesar_pedido(self, **kwargs):
+        if kwargs["pedido_id"] == "P-MAL":
+            self.llamadas.append(kwargs)
+            raise ValueError("Stock insuficiente para A")
+        return super().procesar_pedido(**kwargs)
 
 def test_rest_delega_al_caso_de_uso_sin_recalcular():
     fake = CasoUsoFalso(total=999)
@@ -48,3 +54,17 @@ def test_error_de_negocio_se_traduce_a_400():
 
     assert status == 400
     assert "Stock insuficiente" in cuerpo["error"]
+
+def test_batch_y_rest_usan_la_misma_capacidad():
+    fake_rest = CasoUsoFalso()
+    fake_batch = CasoUsoFalso()
+    manejar_post_pedido(DATOS, fake_rest)
+    procesar_lote([DATOS], fake_batch)
+    assert fake_rest.llamadas == fake_batch.llamadas
+
+
+def test_batch_registra_error_y_sigue_con_el_resto():
+    fake = CasoUsoSelectivo()
+    resumen = procesar_lote([{**DATOS, "pedido_id": "P-MAL"}, DATOS], fake)
+    assert resumen["ok"] == 1
+    assert resumen["errores"][0]["pedido_id"] == "P-MAL"
