@@ -22,3 +22,11 @@ class NotificadorPedidos(Protocol):
 
     def pedido_confirmado(self, cliente, pedido_id: str, total: float) -> None:
         ...
+
+class InventarioPedidos(Protocol):
+
+    def validar_disponibilidad(self, codigo: str, cantidad: int) -> bool:
+        ...
+
+    def reservar(self, codigo: str, cantidad: int) -> None:
+        ...
