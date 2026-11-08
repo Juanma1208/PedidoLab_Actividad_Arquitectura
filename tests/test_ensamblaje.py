@@ -1,3 +1,4 @@
+import ast
 import inspect
 from pedidolabs import servicio_pedidos
 from pedidolabs.bootstrap import crear_inventario, crear_servicio_pedidos
@@ -36,4 +37,12 @@ def test_nucleo_procesa_sin_stockcloud(tmp_path):
 
 
 def test_servicio_no_importa_stockcloud():
-    assert "StockCloud" not in inspect.getsource(servicio_pedidos)
+    arbol = ast.parse(inspect.getsource(servicio_pedidos))
+    modulos = set()
+    for nodo in ast.walk(arbol):
+        if isinstance(nodo, ast.Import):
+            modulos.update(alias.name for alias in nodo.names)
+        elif isinstance(nodo, ast.ImportFrom):
+            modulos.add(nodo.module or "")
+            modulos.update(alias.name for alias in nodo.names)
+    assert not any("stockcloud" in m.lower() for m in modulos)
